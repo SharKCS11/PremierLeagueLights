@@ -1,6 +1,17 @@
+import os
+from time import sleep
+import requests
+import json
+from dotenv import load_dotenv
+
+
+load_dotenv(verbose=True)
+#print (os.getenv("LIFX_AUTH")) # Get key.
+
 colors = {}
+time_multiplier = 1.5
 # hue, sat, brightness, delay states.
-# Total 1000ms
+# Total 1500ms
 '''
 Colors:
     Liverpool - Red
@@ -28,7 +39,7 @@ def getWhite(delay_in):
     return [150, 0, 0.9, delay_in]
 
 def getBlack(delay_in):
-    return [0, 1, 0, delay_in]
+    return [0, 1, 0.01, delay_in]
 
 colors["Liverpool FC"] = [ [352, 1, 0.9, 1000] ]
 colors["Tottenham Hotspur FC"] = [ [150, 0, 0.9, 500], [243, 0.95, 0.24, 500] ]
@@ -51,3 +62,37 @@ colors["Burnley FC"] = [ [188, 1, 0.85, 400], [2, 1, 0.4, 200], [188, 1, 0.85, 4
 colors["Fulham FC"] = [getWhite(600), getBlack(400)]
 colors["Huddersfield Town AFC"] = [ [248, 1, 0.38, 250], [194, 0.72, 0.77, 250], [248, 1, 0.38, 250], [194, 0.72, 0.77, 250] ]
 
+lifx_url = "https://api.lifx.com/v1/lights/id:%s/state" %(os.getenv("LIFX_ID"))
+print (lifx_url)
+
+# Make requests.
+def set_color(col_string):
+    headers = {'Authorization':os.getenv('LIFX_AUTH'), 'Content-Type':'application/json'}
+    json_data = {"color": col_string, "duration": "0.01", "fast":True}
+    r = requests.put(lifx_url, data=json.dumps(json_data), headers=headers);
+    print (r)
+
+def set_off():
+    col_string = "hue:0 saturation:0 brightness:0.01"
+    set_color(col_string)
+    sleep(2.5)
+
+def set_light_and_delay(cline):
+    c_hue = cline[0]
+    c_sat = cline[1]
+    c_bri = cline[2]
+    c_delay = cline[3]
+    col_string = "hue:%.1f saturation:%.2f brightness:%.2f" %(c_hue, c_sat, c_bri)
+    print (col_string)
+    set_color(col_string)
+    sleep(c_delay*time_multiplier/1000)
+
+teams = ["Liverpool FC", "Manchester United FC", "Crystal Palace FC", "Huddersfield Town AFC"]
+set_off()
+for team in teams:
+    loc_colors = colors[team];
+    for cline in loc_colors:
+        set_light_and_delay(cline);
+    set_off()
+
+    
